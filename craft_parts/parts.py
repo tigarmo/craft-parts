@@ -19,7 +19,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set
 
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError, root_validator, validator
 
 from craft_parts import errors
 from craft_parts.dirs import ProjectDirs
@@ -46,6 +46,7 @@ class PartSpec(BaseModel):
     overlay_packages: List[str] = []
     stage_snaps: List[str] = []
     stage_packages: List[str] = []
+    stage_slices: List[str] = []
     build_snaps: List[str] = []
     build_packages: List[str] = []
     build_environment: List[Dict[str, str]] = []
@@ -77,6 +78,30 @@ class PartSpec(BaseModel):
             item[0] != "/"
         ), f"{item!r} must be a relative path (cannot start with '/')"
         return item
+
+    @root_validator(pre=True)
+    def validate_root(cls, values):
+        """Check if the part spec has a valid configuration of packages and slices."""
+        assert "stage-slices" not in values, (
+            "'stage-slices' must not be explicitly passed in the part data; "
+            "it is derived from 'stage-packages'"
+        )
+
+        def is_slice(name):
+            return "_" in name
+
+        # Split "stage-packages" into packages and slices
+        stage_packages = values.get("stage-packages", [])
+        stage_slices = [name for name in stage_packages if is_slice(name)]
+        stage_packages = [name for name in stage_packages if not is_slice(name)]
+
+        if stage_slices and stage_packages:
+            raise ValueError("Cannot mix packages and slices in stage-packages")
+
+        values["stage-packages"] = stage_packages
+        values["stage-slices"] = stage_slices
+
+        return values
 
     # pylint: enable=no-self-argument
 

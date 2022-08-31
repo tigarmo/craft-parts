@@ -17,6 +17,7 @@
 from copy import deepcopy
 from functools import partial
 
+import pydantic
 import pytest
 
 from craft_parts import errors, parts
@@ -67,6 +68,8 @@ class TestPartSpecs:
         spec = PartSpec.unmarshal(data)
         assert data == data_copy
 
+        data_copy["stage-slices"] = []
+
         new_data = spec.marshal()
         assert new_data == data_copy
 
@@ -74,6 +77,32 @@ class TestPartSpecs:
         with pytest.raises(TypeError) as raised:
             PartSpec.unmarshal(False)  # type: ignore
         assert str(raised.value) == "part data is not a dictionary"
+
+    def test_unmarshal_slices(self):
+        """
+        Test that slice names in 'stage_packages' are correctly put into 'stage_slices'
+        """
+        data = {
+            "stage-packages": ["pkg1_bin", "pkg2_bin", "pkg2_extra"],
+        }
+        spec = PartSpec.unmarshal(data)
+        assert spec.stage_packages == []
+        assert spec.stage_slices == ["pkg1_bin", "pkg2_bin", "pkg2_extra"]
+
+    def test_unmarshal_stage_slice_in_spec(self):
+        """Test that"""
+        data = {"stage-slices": ["pkg1_bin"]}
+
+        with pytest.raises(ValueError):
+            PartSpec.unmarshal(data)
+
+    def test_unmarshal_mix_packages_slices(self):
+        """Test that mixing packages and chisel slices raises validation errors"""
+        data = {
+            "stage-packages": ["pkg1_bin", "pkg2_bin", "pkg3"],
+        }
+        with pytest.raises(pydantic.ValidationError):
+            PartSpec.unmarshal(data)
 
 
 class TestPartData:
