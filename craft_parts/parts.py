@@ -260,6 +260,10 @@ class Part:
         return self._part_dir / "stage_packages"
 
     @property
+    def part_slices_dir(self) -> Path:
+        return self._part_dir / "stage_slices"
+
+    @property
     def part_snaps_dir(self) -> Path:
         """Return the subdirectory containing the part snap packages directory."""
         return self._part_dir / "stage_snaps"

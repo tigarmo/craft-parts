@@ -180,6 +180,7 @@ class PartHandler:
         self._make_dirs()
 
         fetched_packages = self._fetch_stage_packages(step_info=step_info)
+        fetched_slices = self._fetch_stage_slices()
         fetched_snaps = self._fetch_stage_snaps()
         self._fetch_overlay_packages()
 
@@ -196,6 +197,7 @@ class PartHandler:
             project_options=step_info.project_options,
             assets={
                 "stage-packages": fetched_packages,
+                "stage-slices": fetched_slices,
                 "stage-snaps": fetched_snaps,
                 "source-details": getattr(self._source_handler, "source_details", None),
             },
@@ -273,6 +275,7 @@ class PartHandler:
         """
         self._make_dirs()
         self._unpack_stage_packages()
+        self._unpack_stage_slices()
         self._unpack_stage_snaps()
 
         if not update and not self._plugin.get_out_of_source_build():
@@ -857,6 +860,15 @@ class PartHandler:
 
         return fetched_packages
 
+    def _fetch_stage_slices(self) -> Optional[List[str]]:
+        stage_slices = self._part.spec.stage_slices
+        if not stage_slices:
+            return None
+
+        packages.chisel.download_slices(stage_slices, self._part.part_slices_dir)
+
+        return stage_slices
+
     def _fetch_stage_snaps(self):
         """Download snap packages to the part's snap directory."""
         stage_snaps = self._part.spec.stage_snaps
@@ -891,6 +903,12 @@ class PartHandler:
         packages.Repository.unpack_stage_packages(
             stage_packages_path=self._part.part_packages_dir,
             install_path=Path(self._part.part_install_dir),
+        )
+
+    def _unpack_stage_slices(self):
+        packages.chisel.install_slices(
+            download_path=self._part.part_slices_dir,
+            install_path=self._part.part_install_dir,
         )
 
     def _unpack_stage_snaps(self):
