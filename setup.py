@@ -81,7 +81,7 @@ test_requires = [
     "pytest",
     "pytest-mock",
     "requests-mock",
-    "ruff",
+    "ruff>=0.0.188,<=0.0.212",
     "tox",
     "types-PyYAML",
     "types-requests",
