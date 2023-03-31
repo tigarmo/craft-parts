@@ -18,6 +18,7 @@
 
 import logging
 from collections import namedtuple
+from pathlib import Path
 from typing import Callable, List, Optional, Union
 
 from craft_parts import errors
@@ -34,6 +35,7 @@ _PROLOGUE_HOOKS: List[CallbackHook] = []
 _EPILOGUE_HOOKS: List[CallbackHook] = []
 _PRE_STEP_HOOKS: List[CallbackHook] = []
 _POST_STEP_HOOKS: List[CallbackHook] = []
+_OVERLAY_PKG_HOOKS: List[CallbackHook] = []
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,10 @@ def register_epilogue(func: ExecutionCallback) -> None:
     """
     _ensure_not_defined(func, _EPILOGUE_HOOKS)
     _EPILOGUE_HOOKS.append(CallbackHook(func, None))
+
+
+def register_overlay_pkg(func) -> None:
+    _OVERLAY_PKG_HOOKS.append(CallbackHook(func, None))
 
 
 def register_pre_step(
@@ -124,6 +130,11 @@ def run_post_step(step_info: StepInfo) -> None:
     :param step_info: the step information to be sent to the callback functions.
     """
     return _run_step(hook_list=_POST_STEP_HOOKS, step_info=step_info)
+
+
+def run_overlay_pkg(overlay_dir: Path) -> None:
+    for hook in _OVERLAY_PKG_HOOKS:
+        hook.function(overlay_dir)
 
 
 def _run_step(*, hook_list: List[CallbackHook], step_info: StepInfo) -> None:
